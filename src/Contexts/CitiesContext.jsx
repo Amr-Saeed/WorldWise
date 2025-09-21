@@ -1,4 +1,4 @@
-import { createContext, useCallback, useReducer } from "react";
+import { createContext, useCallback, useReducer, useRef } from "react";
 import { useState, useEffect } from "react";
 import { useContext } from "react";
 
@@ -53,21 +53,46 @@ function CitiesProvider({ children }) {
     initialState
   );
 
+  // useEffect(function () {
+  //   async function fetchCities() {
+  //     dispatch({ type: "loading" });
+  //     try {
+  //       // setIsLoading(true);
+  //       const res = await fetch(`${BASE_URL}/cities`);
+  //       const data = await res.json();
+  //       // setCities(data);
+  //       dispatch({ type: "cities/loaded", payload: data });
+  //     } catch {
+  //       console.log("error");
+  //       // } finally {
+  //       //   setIsLoading(false);
+  //     }
+  //   }
+  //   fetchCities();
+  // }, []);
+
+  const isFirstLoad = useRef(true);
+
   useEffect(function () {
     async function fetchCities() {
       dispatch({ type: "loading" });
       try {
-        // setIsLoading(true);
         const res = await fetch(`${BASE_URL}/cities`);
         const data = await res.json();
-        // setCities(data);
         dispatch({ type: "cities/loaded", payload: data });
       } catch {
-        console.log("error");
-        // } finally {
-        //   setIsLoading(false);
+        console.log("API not available, starting empty");
+        dispatch({ type: "cities/loaded", payload: [] });
       }
     }
+
+    if (isFirstLoad.current) {
+      // 🚫 Skip first fetch
+      isFirstLoad.current = false;
+      return;
+    }
+
+    // ✅ Run fetch on refresh / later mounts
     fetchCities();
   }, []);
 
