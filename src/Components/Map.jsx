@@ -22,6 +22,12 @@ function Map() {
   const { cities } = useCities(); //we need this here to get the cities data (as we need to make a marker for each city)
   //of course now we need to get our location so we will use our useGeolocation hook
 
+  // Safety check - ensure cities is always an array
+  const safeCities = Array.isArray(cities) ? cities : [];
+
+  // Then use safeCities instead of cities:
+  // {safeCities.map((city) => (
+
   const {
     isLoading: isLoadingPosition,
     position: geolocationPosition,
@@ -68,7 +74,7 @@ function Map() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
         />
-        {cities.map((city) => (
+        {safeCities.map((city) => (
           <Marker
             position={[city.position.lat, city.position.lng]}
             key={city.id}

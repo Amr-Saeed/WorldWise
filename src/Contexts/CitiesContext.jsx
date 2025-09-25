@@ -186,11 +186,12 @@ import { useState, useEffect } from "react";
 import { useContext } from "react";
 
 const CitiesContext = createContext();
-console.log("Bin ID:", process.env.REACT_APP_BIN_ID);
-console.log("Master Key exists:", !!process.env.REACT_APP_JSONBIN_MASTER_KEY);
 // JsonBin configuration
-const JSONBIN_BIN_ID = process.env.REACT_APP_BIN_ID;
-const JSONBIN_MASTER_KEY = process.env.REACT_APP_JSONBIN_MASTER_KEY;
+const JSONBIN_BIN_ID = import.meta.env.VITE_BIN_ID;
+const JSONBIN_MASTER_KEY = import.meta.env.VITE_JSONBIN_MASTER_KEY;
+// JsonBin configuration
+console.log("Bin ID:", JSONBIN_BIN_ID);
+console.log("Master Key exists:", !!JSONBIN_MASTER_KEY);
 const BASE_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
 const initialState = {
@@ -254,6 +255,8 @@ function CitiesProvider({ children }) {
     async function fetchCities() {
       dispatch({ type: "loading" });
       try {
+        console.log("Headers:", getJsonBinHeaders());
+
         const res = await fetch(BASE_URL, {
           headers: getJsonBinHeaders(),
         });
@@ -280,9 +283,10 @@ function CitiesProvider({ children }) {
   const getCity = useCallback(
     function getCity(id) {
       if (id === currentCity.id) return;
-
+      // Ensure cities is always an array before using find
+      const currentCities = Array.isArray(cities) ? cities : [];
       // Since JsonBin stores all data together, we find the city from the cities array
-      const city = cities.find((city) => city.id === id);
+      const city = currentCities.find((city) => city.id === id);
       if (city) {
         dispatch({ type: "city/loaded", payload: city });
       }
@@ -299,8 +303,10 @@ function CitiesProvider({ children }) {
         id: Date.now().toString(), // Simple ID generation
       };
 
+      // Ensure cities is always an array before spreading
+      const currentCities = Array.isArray(cities) ? cities : [];
       // Update the entire cities array
-      const updatedCities = [...cities, cityWithId];
+      const updatedCities = [...currentCities, cityWithId];
 
       const res = await fetch(BASE_URL, {
         method: "PUT", // JsonBin uses PUT to update the entire bin
@@ -322,13 +328,21 @@ function CitiesProvider({ children }) {
   async function deleteCity(id) {
     dispatch({ type: "loading" });
     try {
+      // Ensure cities is always an array before filtering
+      const currentCities = Array.isArray(cities) ? cities : [];
       // Filter out the city to delete
-      const updatedCities = cities.filter((city) => city.id !== id);
+      const updatedCities = currentCities.filter((city) => city.id !== id);
+
+      // JsonBin doesn't allow empty bins, so keep a placeholder if empty
+      const dataToSave =
+        updatedCities.length === 0
+          ? { cities: [{ id: "placeholder", name: "placeholder" }] }
+          : { cities: updatedCities };
 
       const res = await fetch(BASE_URL, {
         method: "PUT", // JsonBin uses PUT to update the entire bin
         headers: getJsonBinHeaders("PUT"),
-        body: JSON.stringify(updatedCities),
+        body: JSON.stringify(dataToSave),
       });
 
       if (!res.ok) {
